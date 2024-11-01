@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador/Formatador de Documentos - By DavysonD</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Estilo para garantir que o formulário não quebre em dispositivos móveis */
+        .container {
+            max-width: 100%;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .alert {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2 class="text-center">Gerador/Formatador de Documentos - By DavysonD</h2>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-info text-center">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="imageCount">Selecione o número de imagens:</label>
+                <select class="form-control" id="imageCount" name="image_count" onchange="updateImageInputs(this.value)">
+                    <option value="1">Uma Imagem</option>
+                    <option value="2">Duas Imagens</option>
+                </select>
+            </div>
+            <div id="imageInputs">
+                <div class="form-group">
+                    <label for="imageFile0">Escolha a imagem 1:</label>
+                    <input type="file" class="form-control-file mt-2" name="image_files" accept="image/*" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        function updateImageInputs(count) {
+            const container = document.getElementById('imageInputs');
+            container.innerHTML = '';  // Limpa os inputs existentes
+
+            for (let i = 0; i < count; i++) {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                div.innerHTML = `
+                    <label for="imageFile${i}">Escolha a imagem ${i + 1}:</label>
+                    <input type="file" class="form-control-file mt-2" name="image_files" accept="image/*" required>
+                `;
+                container.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>
