@@ -2,12 +2,10 @@ from flask import Flask, render_template, request, send_file, flash, redirect
 from docx import Document
 from docx.shared import Cm
 from docx.enum.section import WD_ORIENT
-import os
+from io import BytesIO  # Importa BytesIO para manipulação de arquivos em memória
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'  # Pasta para salvar as imagens
 app.secret_key = 'your_secret_key'  # Necessário para flash messages
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)  # Cria a pasta se não existir
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -20,16 +18,18 @@ def index():
 
         # Salva as imagens enviadas pelo usuário
         image_files = request.files.getlist('image_files')
-        image_paths = []
+        image_streams = []  # Lista para armazenar os arquivos de imagem em memória
 
         for image_file in image_files:
             if image_file and image_file.filename:
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
-                image_file.save(image_path)
-                image_paths.append(image_path)
+                # Armazena a imagem na memória usando BytesIO
+                image_stream = BytesIO()
+                image_file.save(image_stream)
+                image_stream.seek(0)  # Move o ponteiro para o início do stream
+                image_streams.append(image_stream)
 
         # Verifica se o número correto de imagens foi carregado
-        if len(image_paths) != int(image_count):
+        if len(image_streams) != int(image_count):
             flash(f'Por favor, carregue exatamente {image_count} imagem(s).')
             return redirect(request.url)
 
@@ -52,9 +52,9 @@ def index():
             section.right_margin = narrow_margin
 
             # Insere a única imagem
-            doc.add_paragraph().add_run().add_picture(image_paths[0], width=section.page_width - narrow_margin * 2, height=section.page_height - narrow_margin * 2)
+            doc.add_paragraph().add_run().add_picture(image_streams[0], width=section.page_width - narrow_margin * 2, height=section.page_height - narrow_margin * 2)
 
-        elif image_count == '2' and len(image_paths) == 2:
+        elif image_count == '2' and len(image_streams) == 2:
             # Layout paisagem para duas imagens
             section = doc.sections[0]
             section.orientation = WD_ORIENT.LANDSCAPE
@@ -78,19 +78,19 @@ def index():
             # Insere a primeira imagem
             cell_1 = table.cell(0, 0)
             cell_1.width = width
-            cell_1.paragraphs[0].add_run().add_picture(image_paths[0], width=width, height=height)
+            cell_1.paragraphs[0].add_run().add_picture(image_streams[0], width=width, height=height)
 
             # Insere a segunda imagem
             cell_2 = table.cell(0, 1)
             cell_2.width = width
-            cell_2.paragraphs[0].add_run().add_picture(image_paths[1], width=width, height=height)
+            cell_2.paragraphs[0].add_run().add_picture(image_streams[1], width=width, height=height)
 
-        # Salva o documento
-        doc_path = 'Tarefa - [Formatada].docx'
-        doc.save(doc_path)
+        # Salva o documento em um objeto BytesIO para enviar como download
+        doc_stream = BytesIO()
+        doc.save(doc_stream)
+        doc_stream.seek(0)  # Move o ponteiro para o início do stream
 
-        flash('Documento gerado com sucesso! O download começará automaticamente.')
-        return send_file(doc_path, as_attachment=True)
+        return send_file(doc_stream, as_attachment=True, download_name='Tarefa - [Formatada].docx', mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
     return render_template('upload_form.html')
 
